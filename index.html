@@ -14,9 +14,80 @@
         button { background-color: #3498db; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 5px; cursor: pointer; transition: 0.3s; margin-top: 10px; }
         button:hover { background-color: #2980b9; }
         button:disabled { background-color: #95a5a6; cursor: not-allowed; }
+        .btn-image { background-color: #8e44ad; }
+        .btn-image:hover { background-color: #7d3c98; }
+        .btn-download { background-color: #27ae60; font-size: 14px; padding: 8px 16px; }
+        .btn-download:hover { background-color: #229954; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
         .feedback-box { background-color: #e8f6f3; padding: 15px; border-radius: 5px; border-left: 4px solid #1abc9c; min-height: 100px; white-space: pre-wrap;}
         .loading { display: none; color: #e67e22; font-weight: bold; margin-top: 10px; }
+
+        /* 圖片相關樣式 */
+        .image-box {
+            background-color: #f8f0ff;
+            border: 2px dashed #c39bd3;
+            border-radius: 10px;
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+        .image-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+            border-radius: 8px;
+        }
+        .image-placeholder {
+            color: #c39bd3;
+            font-size: 14px;
+            text-align: center;
+            padding: 20px;
+        }
+        .image-cover-box {
+            width: 300px;
+            height: 300px;
+            margin: 15px auto 0;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid #c39bd3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8f0ff;
+        }
+        .image-cover-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .style-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .style-btn {
+            background: white;
+            color: #8e44ad;
+            border: 2px solid #c39bd3;
+            padding: 8px 6px;
+            font-size: 13px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+            text-align: center;
+        }
+        .style-btn:hover, .style-btn.active {
+            background: #8e44ad;
+            color: white;
+            border-color: #8e44ad;
+        }
+        .image-actions { text-align: center; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -25,9 +96,11 @@
     <h1>🚀 FB 長文生成與編修 App (n8n 隱形後端版)</h1>
 
     <div class="api-box">
-        <label for="webhookUrl"><strong>🔗 請貼上你的 n8n Webhook (Test URL) 網址：</strong></label>
-        <input type="url" id="webhookUrl" placeholder="例如：https://你的n8n主機/webhook-test/fb-app-webhook">
-        <p style="font-size: 13px; margin-top: 5px; color: #555;">💡 小提醒：OpenAI 金鑰已經安全地鎖在 n8n 裡了，網頁端不需輸入！</p>
+        <label for="webhookUrl"><strong>🔗 文字 Webhook（n8n Production URL）：</strong></label>
+        <input type="url" id="webhookUrl" placeholder="例如：https://你的n8n主機/webhook/fb-app">
+        <label for="webhookImageUrl" style="margin-top:10px; display:block;"><strong>🎨 產圖 Webhook（n8n Production URL）：</strong></label>
+        <input type="url" id="webhookImageUrl" placeholder="例如：https://你的n8n主機/webhook/fb-image">
+        <p style="font-size: 13px; margin-top: 5px; color: #555;">💡 小提醒：OpenAI / Gemini 金鑰已安全鎖在 n8n 裡，網頁端不需輸入！</p>
     </div>
 
     <div class="section">
@@ -56,6 +129,31 @@
         <textarea id="notebookInput" rows="5" placeholder="貼上 NotebookLM 報告..."></textarea>
         <button id="btnGen" onclick="generateArticle()">✨ 一鍵生成文章</button>
         <div id="loadingGen" class="loading">⏳ AI 寫作中...</div>
+
+        <!-- 文章生成後自動出現的封面圖區 -->
+        <div id="coverSection" style="display:none; margin-top: 20px; padding-top: 15px; border-top: 1px dashed #c39bd3;">
+            <h3>🎨 自動產封面圖</h3>
+            <p style="font-size: 13px; color: #777;">根據文章主題，Gemini 自動生成正方形封面圖</p>
+            <div style="margin-top: 8px;">
+                <label style="font-size: 14px; font-weight: bold; color: #8e44ad;">選擇風格：</label>
+                <div class="style-grid" id="coverStyleGrid">
+                    <button class="style-btn active" onclick="selectStyle('cover', this, '水彩手繪風，溫暖柔和色調，輕透明亮')">🎨 水彩手繪</button>
+                    <button class="style-btn" onclick="selectStyle('cover', this, '油畫風格，飽和色彩，厚實筆觸')">🖼️ 油畫風</button>
+                    <button class="style-btn" onclick="selectStyle('cover', this, '扁平插畫風，幾何色塊，現代簡潔')">📐 扁平插畫</button>
+                    <button class="style-btn" onclick="selectStyle('cover', this, '鉛筆素描線條，黑白，細膩手繪質感')">✏️ 線條素描</button>
+                    <button class="style-btn" onclick="selectStyle('cover', this, '攝影寫實風格，高畫質，自然光')">📷 攝影寫實</button>
+                    <button class="style-btn" onclick="selectStyle('cover', this, '賽博龐克，霓虹燈，科技感，深色背景')">🌃 賽博龐克</button>
+                </div>
+            </div>
+            <button id="btnCoverImg" class="btn-image" onclick="generateCoverImage()">🖼️ 生成封面圖</button>
+            <div id="loadingCoverImg" class="loading">⏳ Gemini 繪圖中，請稍候 (約 15-30 秒)...</div>
+            <div class="image-cover-box" id="coverImgBox">
+                <div class="image-placeholder">封面圖會顯示在這裡<br>（正方形 1:1）</div>
+            </div>
+            <div class="image-actions" id="coverImgActions" style="display:none;">
+                <button class="btn-download" onclick="downloadImage('coverImg', '封面圖')">⬇️ 下載封面圖</button>
+            </div>
+        </div>
     </div>
 
     <div class="section">
@@ -81,6 +179,39 @@
         <div id="loadingFinal" class="loading">⏳ 總編檢查中...</div>
         <div id="finalOutput" class="feedback-box" style="margin-top: 10px;"></div>
     </div>
+
+    <div class="section">
+        <h2>4. 🎨 獨立產圖區 (Gemini Imagen)</h2>
+        <p style="font-size: 14px; color: #555;">輸入圖片描述，選擇風格，生成正方形圖片</p>
+        <div class="grid">
+            <div>
+                <label style="font-size: 14px; font-weight: bold;">圖片描述：</label>
+                <textarea id="imagePromptInput" rows="4" placeholder="例如：一個人站在山頂看夕陽，感受自由與廣闊，象徵突破自我..."></textarea>
+
+                <label style="font-size: 14px; font-weight: bold; color: #8e44ad; margin-top: 12px; display:block;">選擇風格：</label>
+                <div class="style-grid" id="standaloneStyleGrid">
+                    <button class="style-btn active" onclick="selectStyle('standalone', this, '水彩手繪風，溫暖柔和色調，輕透明亮')">🎨 水彩手繪</button>
+                    <button class="style-btn" onclick="selectStyle('standalone', this, '油畫風格，飽和色彩，厚實筆觸')">🖼️ 油畫風</button>
+                    <button class="style-btn" onclick="selectStyle('standalone', this, '扁平插畫風，幾何色塊，現代簡潔')">📐 扁平插畫</button>
+                    <button class="style-btn" onclick="selectStyle('standalone', this, '鉛筆素描線條，黑白，細膩手繪質感')">✏️ 線條素描</button>
+                    <button class="style-btn" onclick="selectStyle('standalone', this, '攝影寫實風格，高畫質，自然光')">📷 攝影寫實</button>
+                    <button class="style-btn" onclick="selectStyle('standalone', this, '賽博龐克，霓虹燈，科技感，深色背景')">🌃 賽博龐克</button>
+                </div>
+
+                <button id="btnGenImg" class="btn-image" onclick="generateStandaloneImage()">🎨 立即產圖</button>
+                <div id="loadingGenImg" class="loading">⏳ Gemini 繪圖中，請稍候 (約 15-30 秒)...</div>
+            </div>
+            <div>
+                <label style="font-size: 14px; font-weight: bold;">生成結果（正方形 1:1）：</label>
+                <div class="image-box" id="standaloneImgBox" style="height: 300px; margin-top: 5px;">
+                    <div class="image-placeholder">🖼️<br>圖片會顯示在這裡</div>
+                </div>
+                <div class="image-actions" id="standaloneImgActions" style="display:none; margin-top:8px;">
+                    <button class="btn-download" onclick="downloadImage('standaloneImg', '產圖')">⬇️ 下載圖片</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -95,15 +226,44 @@
 4. 文章標題格式：\n【主標】\n—— 副標
     `;
 
+    // 風格狀態存儲
+    const selectedStyles = {
+        cover: '水彩手繪風，溫暖柔和色調，輕透明亮',
+        standalone: '水彩手繪風，溫暖柔和色調，輕透明亮'
+    };
+
+    function selectStyle(type, el, style) {
+        selectedStyles[type] = style;
+        const gridId = type === 'cover' ? 'coverStyleGrid' : 'standaloneStyleGrid';
+        document.querySelectorAll(`#${gridId} .style-btn`).forEach(b => b.classList.remove('active'));
+        el.classList.add('active');
+    }
+
     function toggleCustom() {
-        document.getElementById('customKeyword').style.display = 
+        document.getElementById('customKeyword').style.display =
             document.getElementById('videoCategory').value === 'custom' ? 'block' : 'none';
     }
 
-    // 統一呼叫 n8n Webhook 的核心程式
+    // 從 n8n 回傳的 JSON 中自動萃取文字內容
+    function extractTextFromN8n(data) {
+        const obj = Array.isArray(data) ? data[0] : data;
+        if (!obj) return null;
+        const candidates = [
+            obj.text, obj.output, obj.message, obj.content, obj.result, obj.response,
+            obj?.choices?.[0]?.message?.content,
+            obj?.choices?.[0]?.text,
+            obj?.json?.text, obj?.json?.output,
+        ];
+        for (const val of candidates) {
+            if (typeof val === 'string' && val.trim()) return val.trim();
+        }
+        return "⚠️ 無法自動解析 n8n 回傳格式，原始 JSON 如下：\n\n" + JSON.stringify(data, null, 2);
+    }
+
+    // 統一呼叫 n8n 文字 Webhook
     async function callN8n(systemPrompt, userPrompt, temperature, btnId, loadingId) {
         const webhookUrl = document.getElementById('webhookUrl').value.trim();
-        if (!webhookUrl) return alert("請先在最上方填寫你的 n8n Webhook 網址！");
+        if (!webhookUrl) return alert("請先填寫文字 Webhook 網址！");
 
         document.getElementById(btnId).disabled = true;
         document.getElementById(loadingId).style.display = 'block';
@@ -112,16 +272,13 @@
             const response = await fetch(webhookUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    systemPrompt: systemPrompt,
-                    userPrompt: userPrompt,
-                    temperature: temperature
-                })
+                body: JSON.stringify({ systemPrompt, userPrompt, temperature })
             });
+            if (!response.ok) { alert(`n8n 錯誤：${response.status} ${response.statusText}`); return null; }
             const data = await response.json();
-            return data.text; 
+            return extractTextFromN8n(data);
         } catch (error) {
-            alert("連線到 n8n 失敗，請確認網址正確且 n8n 正在監聽中：" + error.message);
+            alert("❌ 連線失敗：" + error.message);
             return null;
         } finally {
             document.getElementById(btnId).disabled = false;
@@ -129,45 +286,105 @@
         }
     }
 
+    // 呼叫 n8n 產圖 Webhook
+    async function callN8nImage(prompt, style, btnId, loadingId) {
+        const webhookUrl = document.getElementById('webhookImageUrl').value.trim();
+        if (!webhookUrl) return alert("請先填寫產圖 Webhook 網址！");
+
+        document.getElementById(btnId).disabled = true;
+        document.getElementById(loadingId).style.display = 'block';
+
+        try {
+            const response = await fetch(webhookUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt, style })
+            });
+            if (!response.ok) { alert(`產圖 Webhook 錯誤：${response.status} ${response.statusText}`); return null; }
+            const data = await response.json();
+            const obj = Array.isArray(data) ? data[0] : data;
+            // 嘗試取得 base64 圖片，支援多種欄位名稱
+            return obj.image || obj.imageBase64 || obj.base64 ||
+                   obj?.predictions?.[0]?.bytesBase64Encoded || null;
+        } catch (error) {
+            alert("❌ 產圖連線失敗：" + error.message);
+            return null;
+        } finally {
+            document.getElementById(btnId).disabled = false;
+            document.getElementById(loadingId).style.display = 'none';
+        }
+    }
+
+    // 顯示 base64 圖片到指定容器
+    function showImage(base64, mimeType, boxId, imgId, actionsId) {
+        const box = document.getElementById(boxId);
+        const src = base64.startsWith('data:') ? base64 : `data:${mimeType || 'image/png'};base64,${base64}`;
+        box.innerHTML = `<img id="${imgId}" src="${src}" alt="生成圖片">`;
+        document.getElementById(actionsId).style.display = 'block';
+    }
+
+    // 下載圖片
+    function downloadImage(imgId, filename) {
+        const img = document.getElementById(imgId);
+        if (!img) return;
+        const a = document.createElement('a');
+        a.href = img.src;
+        a.download = `${filename}_${Date.now()}.png`;
+        a.click();
+    }
+
     // 步驟 0
     async function findVideos() {
         let kw = document.getElementById('videoCategory').value;
         if (kw === 'custom') kw = document.getElementById('customKeyword').value.trim();
         if (!kw) return alert("請輸入關鍵字！");
-
         const sys = "你是一位對 YouTube 趨勢敏銳的社群企劃。";
         const user = `幫我找 3 支關於【${kw}】的 YouTube 影片。\n條件：瀏覽至少 10 萬、一年內發布、非中文、知識型頻道優先。\n每支請給我：標題＋連結＋一句話說明適合改寫成什麼主題＋建議開頭角度。`;
-        
         const result = await callN8n(sys, user, 0.7, 'btnFind', 'loadingFind');
         if (result) document.getElementById('videoOutput').value = result;
     }
 
-    // 步驟 1
+    // 步驟 1：生成文章後顯示封面圖區
     async function generateArticle() {
         const text = document.getElementById('notebookInput').value;
         if (!text) return alert("請貼上報告！");
-
         const user = "以下是 NotebookLM 整理的報告，請根據規則幫我改寫：\n\n" + text;
         const result = await callN8n(SYSTEM_PROMPT, user, 0.7, 'btnGen', 'loadingGen');
-        if (result) document.getElementById('articleEditor').value = result;
+        if (result) {
+            document.getElementById('articleEditor').value = result;
+            document.getElementById('coverSection').style.display = 'block'; // 顯示封面圖區
+        }
     }
 
-    // 步驟 2 (包含先分析、再改寫兩次呼叫)
+    // 封面圖：根據文章自動生成 prompt 再產圖
+    async function generateCoverImage() {
+        const article = document.getElementById('articleEditor').value;
+        if (!article) return alert("請先生成文章！");
+
+        // 先請 AI 萃取適合產圖的描述
+        const sys = "你是一位視覺設計師，請從文章中提取核心意象，用一段 80 字以內的英文描述，適合用來生成一張正方形封面圖，描述要具體有畫面感，不要出現任何文字。";
+        const imgPrompt = await callN8n(sys, article, 0.7, 'btnCoverImg', 'loadingCoverImg');
+        if (!imgPrompt) return;
+
+        const base64 = await callN8nImage(imgPrompt, selectedStyles.cover, 'btnCoverImg', 'loadingCoverImg');
+        if (base64) {
+            showImage(base64, 'image/png', 'coverImgBox', 'coverImg', 'coverImgActions');
+        } else {
+            alert("⚠️ 產圖失敗，請確認產圖 Webhook 設定正確。");
+        }
+    }
+
+    // 步驟 2
     async function refineArticle() {
         const article = document.getElementById('articleEditor').value;
         const fb = document.getElementById('userFeedback').value;
         if (!article) return alert("請確認編輯區有文章！");
-
         document.getElementById('analysisOutput').innerText = "AI 教練正在分析文章...";
-        
-        // 第一次呼叫：分析
         const sys1 = "你是一位資深社群寫作教練，請分析這篇文章的風格與優缺點，以及可優化的地方。";
         const user1 = `這是目前寫好的文章：\n\n${article}\n\n我的額外優化要求/觀點：${fb}`;
         const analysisResult = await callN8n(sys1, user1, 0.7, 'btnRefine', 'loadingRefine');
         if (!analysisResult) return;
         document.getElementById('analysisOutput').innerText = analysisResult;
-
-        // 第二次呼叫：改寫
         const user2 = `這是原文章：\n${article}\n\n這是教練的分析與優化建議：\n${analysisResult}\n\n任務：請按照教練提供的方向調整。原文盡量不改動，只調整必要調整的地方，不要從頭到尾改寫。不要與我互動與對話，直接給我修改後的文章。`;
         const newArticle = await callN8n(SYSTEM_PROMPT, user2, 0.5, 'btnRefine', 'loadingRefine');
         if (newArticle) document.getElementById('articleEditor').value = newArticle;
@@ -177,11 +394,22 @@
     async function finalAnalysis() {
         const article = document.getElementById('articleEditor').value;
         if (!article) return alert("請確認編輯區有文章！");
-
         const sys = "你是一位嚴格的社群內容總編。請確認：1. 語氣是否自然、2. 節奏是否順暢、3. 有無邏輯盲點或錯字。條列給回饋，【不要】重新改寫文章。";
         const user = "這是我人工精修後的文章，請幫我做最後分析：\n\n" + article;
         const result = await callN8n(sys, user, 0.3, 'btnFinal', 'loadingFinal');
         if (result) document.getElementById('finalOutput').innerText = result;
+    }
+
+    // 步驟 4：獨立產圖
+    async function generateStandaloneImage() {
+        const prompt = document.getElementById('imagePromptInput').value.trim();
+        if (!prompt) return alert("請輸入圖片描述！");
+        const base64 = await callN8nImage(prompt, selectedStyles.standalone, 'btnGenImg', 'loadingGenImg');
+        if (base64) {
+            showImage(base64, 'image/png', 'standaloneImgBox', 'standaloneImg', 'standaloneImgActions');
+        } else {
+            alert("⚠️ 產圖失敗，請確認產圖 Webhook 設定正確，並確認 n8n 中 Gemini API Key 有效。");
+        }
     }
 </script>
 
