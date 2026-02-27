@@ -262,8 +262,11 @@
 
     // 統一呼叫 n8n 文字 Webhook
     async function callN8n(systemPrompt, userPrompt, temperature, btnId, loadingId) {
-        const webhookUrl = document.getElementById('webhookUrl').value.trim();
-        if (!webhookUrl) return alert("請先填寫文字 Webhook 網址！");
+        const rawUrl = document.getElementById('webhookUrl').value.trim();
+        if (!rawUrl) return alert("請先填寫文字 Webhook 網址！");
+        let webhookUrl;
+        try { webhookUrl = new URL(rawUrl).toString(); }
+        catch(e) { return alert("❌ 文字 Webhook 網址格式錯誤：" + rawUrl); }
 
         document.getElementById(btnId).disabled = true;
         document.getElementById(loadingId).style.display = 'block';
@@ -288,8 +291,11 @@
 
     // 呼叫 n8n 產圖 Webhook
     async function callN8nImage(prompt, style, btnId, loadingId) {
-        const webhookUrl = document.getElementById('webhookImageUrl').value.trim();
-        if (!webhookUrl) return alert("請先填寫產圖 Webhook 網址！");
+        const rawImgUrl = document.getElementById('webhookImageUrl').value.trim();
+        if (!rawImgUrl) return alert("請先填寫產圖 Webhook 網址！");
+        let webhookUrl;
+        try { webhookUrl = new URL(rawImgUrl).toString(); }
+        catch(e) { return alert("❌ 產圖 Webhook 網址格式錯誤：" + rawImgUrl); }
 
         document.getElementById(btnId).disabled = true;
         document.getElementById(loadingId).style.display = 'block';
